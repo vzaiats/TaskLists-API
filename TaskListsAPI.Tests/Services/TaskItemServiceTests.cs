@@ -9,17 +9,17 @@ namespace TaskListsAPI.Tests.Services
 {
     public class TaskItemServiceTests
     {
-        private readonly Mock<ITaskItemRepository> _repositoryMock;
+        private readonly Mock<ITaskItemRepository> _taskItemRepository;
         private readonly Mock<ILogger<TaskItemService>> _loggerMock;
-        private readonly TaskItemService _service;
+        private readonly TaskItemService _taskItemService;
 
         #region Ctor
 
         public TaskItemServiceTests()
         {
-            _repositoryMock = new Mock<ITaskItemRepository>();
+            _taskItemRepository = new Mock<ITaskItemRepository>();
             _loggerMock = new Mock<ILogger<TaskItemService>>();
-            _service = new TaskItemService(_repositoryMock.Object, _loggerMock.Object);
+            _taskItemService = new TaskItemService(_taskItemRepository.Object, _loggerMock.Object);
         }
 
         #endregion
@@ -34,11 +34,11 @@ namespace TaskListsAPI.Tests.Services
             // Arrange
             var collectionId = Guid.Parse(collectionIdStr);
             var dto = new CreateTaskItemDto { Title = title, TaskCollectionId = collectionId };
-            _repositoryMock.Setup(r => r.AddAsync(It.IsAny<TaskItem>())).Returns(Task.CompletedTask);
-            _repositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+            _taskItemRepository.Setup(r => r.AddAsync(It.IsAny<TaskItem>())).Returns(Task.CompletedTask);
+            _taskItemRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            var result = await _service.CreateAsync(dto);
+            var result = await _taskItemService.CreateAsync(dto);
 
             // Assert
             Assert.True(result.IsSuccess);
@@ -58,14 +58,14 @@ namespace TaskListsAPI.Tests.Services
             // Arrange
             var taskId = Guid.NewGuid();
             var task = new TaskItem("Old task", Guid.NewGuid());
-            _repositoryMock.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync(task);
-            _repositoryMock.Setup(r => r.UpdateAsync(task)).Returns(Task.CompletedTask);
-            _repositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+            _taskItemRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync(task);
+            _taskItemRepository.Setup(r => r.UpdateAsync(task)).Returns(Task.CompletedTask);
+            _taskItemRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             var dto = new UpdateTaskItemDto { Title = newTitle, IsCompleted = isCompleted };
 
             // Act
-            var result = await _service.UpdateAsync(taskId, dto);
+            var result = await _taskItemService.UpdateAsync(taskId, dto);
 
             // Assert
             Assert.True(result.IsSuccess);
@@ -78,11 +78,11 @@ namespace TaskListsAPI.Tests.Services
         {
             // Arrange
             var taskId = Guid.NewGuid();
-            _repositoryMock.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((TaskItem)null);
+            _taskItemRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((TaskItem)null);
             var dto = new UpdateTaskItemDto { Title = "New Task", IsCompleted = true };
 
             // Act
-            var result = await _service.UpdateAsync(taskId, dto);
+            var result = await _taskItemService.UpdateAsync(taskId, dto);
 
             // Assert
             Assert.False(result.IsSuccess);
@@ -99,12 +99,12 @@ namespace TaskListsAPI.Tests.Services
             // Arrange
             var taskId = Guid.NewGuid();
             var task = new TaskItem("Test", Guid.NewGuid());
-            _repositoryMock.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync(task);
-            _repositoryMock.Setup(r => r.DeleteAsync(task)).Returns(Task.CompletedTask);
-            _repositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+            _taskItemRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync(task);
+            _taskItemRepository.Setup(r => r.DeleteAsync(task)).Returns(Task.CompletedTask);
+            _taskItemRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            var result = await _service.DeleteAsync(taskId);
+            var result = await _taskItemService.DeleteAsync(taskId);
 
             // Assert
             Assert.True(result.IsSuccess);
@@ -116,10 +116,10 @@ namespace TaskListsAPI.Tests.Services
         {
             // Arrange
             var taskId = Guid.NewGuid();
-            _repositoryMock.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((TaskItem)null);
+            _taskItemRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((TaskItem)null);
 
             // Act
-            var result = await _service.DeleteAsync(taskId);
+            var result = await _taskItemService.DeleteAsync(taskId);
 
             // Assert
             Assert.False(result.IsSuccess);
@@ -136,10 +136,10 @@ namespace TaskListsAPI.Tests.Services
             // Arrange
             var taskId = Guid.NewGuid();
             var task = new TaskItem("Test", Guid.NewGuid());
-            _repositoryMock.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync(task);
+            _taskItemRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync(task);
 
             // Act
-            var result = await _service.GetByIdAsync(taskId);
+            var result = await _taskItemService.GetByIdAsync(taskId);
 
             // Assert
             Assert.True(result.IsSuccess);
@@ -151,10 +151,10 @@ namespace TaskListsAPI.Tests.Services
         {
             // Arrange
             var taskId = Guid.NewGuid();
-            _repositoryMock.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((TaskItem)null);
+            _taskItemRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((TaskItem)null);
 
             // Act
-            var result = await _service.GetByIdAsync(taskId);
+            var result = await _taskItemService.GetByIdAsync(taskId);
 
             // Assert
             Assert.False(result.IsSuccess);
@@ -178,10 +178,10 @@ namespace TaskListsAPI.Tests.Services
                 new TaskItem("Task2", collectionId),
                 new TaskItem("Task3", collectionId)
             };
-            _repositoryMock.Setup(r => r.GetAllByCollectionIdAsync(collectionId)).ReturnsAsync(tasks.Take(expectedCount).ToList());
+            _taskItemRepository.Setup(r => r.GetAllByCollectionIdAsync(collectionId)).ReturnsAsync(tasks.Take(expectedCount).ToList());
 
             // Act
-            var result = await _service.GetAllByCollectionIdAsync(collectionId);
+            var result = await _taskItemService.GetAllByCollectionIdAsync(collectionId);
 
             // Assert
             Assert.True(result.IsSuccess);
@@ -193,10 +193,10 @@ namespace TaskListsAPI.Tests.Services
         {
             // Arrange
             var collectionId = Guid.NewGuid();
-            _repositoryMock.Setup(r => r.GetAllByCollectionIdAsync(collectionId)).ThrowsAsync(new Exception());
+            _taskItemRepository.Setup(r => r.GetAllByCollectionIdAsync(collectionId)).ThrowsAsync(new Exception());
 
             // Act
-            var result = await _service.GetAllByCollectionIdAsync(collectionId);
+            var result = await _taskItemService.GetAllByCollectionIdAsync(collectionId);
 
             // Assert
             Assert.False(result.IsSuccess);

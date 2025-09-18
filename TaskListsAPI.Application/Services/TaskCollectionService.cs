@@ -12,14 +12,16 @@ namespace TaskListsAPI.Application.Services
     // Service for TaskCollection and sharing operations
     public class TaskCollectionService : ITaskCollectionService
     {
-        private readonly ITaskCollectionRepository _repository;
+        private readonly ITaskCollectionRepository _taskCollectionRepository;
+        private readonly IUserRepository _userRepository;
         private readonly ILogger<TaskCollectionService> _logger;
 
         #region Ctor
 
-        public TaskCollectionService(ITaskCollectionRepository repository, ILogger<TaskCollectionService> logger)
+        public TaskCollectionService(ITaskCollectionRepository taskCollectionRepository, IUserRepository userRepository, ILogger<TaskCollectionService> logger)
         {
-            _repository = repository;
+            _taskCollectionRepository = taskCollectionRepository;
+            _userRepository = userRepository;
             _logger = logger;
         }
 
@@ -32,9 +34,12 @@ namespace TaskListsAPI.Application.Services
         {
             try
             {
+                var user = await _userRepository.GetByIdAsync(dto.OwnerId);
+                if (user == null) return ServiceResult<ReturnTaskCollectionDto>.Error(ErrorMessages.UserNotFound);
+
                 var collection = new TaskCollection(dto.Name, dto.OwnerId);
-                await _repository.AddAsync(collection);
-                await _repository.SaveChangesAsync();
+                await _taskCollectionRepository.AddAsync(collection);
+                await _taskCollectionRepository.SaveChangesAsync();
 
                 return ServiceResult<ReturnTaskCollectionDto>.Success(MapToReturnDtoHelper.MapToReturnDto(collection));
             }
@@ -50,15 +55,18 @@ namespace TaskListsAPI.Application.Services
         {
             try
             {
-                var collection = await _repository.GetByIdAsync(collectionId);
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null) return ServiceResult<ReturnTaskCollectionDto>.Error(ErrorMessages.UserNotFound);
+
+                var collection = await _taskCollectionRepository.GetByIdAsync(collectionId);
                 if (collection == null) return ServiceResult<ReturnTaskCollectionDto>.Error(ErrorMessages.CollectionNotFound);
 
                 if (collection.OwnerId != userId && !collection.Shares.Any(s => s.UserId == userId))
                     return ServiceResult<ReturnTaskCollectionDto>.Error(ErrorMessages.AccessDenied);
 
                 collection.Rename(dto.Name);
-                await _repository.UpdateAsync(collection);
-                await _repository.SaveChangesAsync();
+                await _taskCollectionRepository.UpdateAsync(collection);
+                await _taskCollectionRepository.SaveChangesAsync();
 
                 return ServiceResult<ReturnTaskCollectionDto>.Success(MapToReturnDtoHelper.MapToReturnDto(collection));
             }
@@ -74,14 +82,17 @@ namespace TaskListsAPI.Application.Services
         {
             try
             {
-                var collection = await _repository.GetByIdAsync(collectionId);
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null) return ServiceResult<bool>.Error(ErrorMessages.UserNotFound);
+
+                var collection = await _taskCollectionRepository.GetByIdAsync(collectionId);
                 if (collection == null) return ServiceResult<bool>.Error(ErrorMessages.CollectionNotFound);
 
                 if (collection.OwnerId != userId)
                     return ServiceResult<bool>.Error(ErrorMessages.OnlyOwnerCanDelete);
 
-                await _repository.DeleteAsync(collection);
-                await _repository.SaveChangesAsync();
+                await _taskCollectionRepository.DeleteAsync(collection);
+                await _taskCollectionRepository.SaveChangesAsync();
 
                 return ServiceResult<bool>.Success(true);
             }
@@ -97,7 +108,10 @@ namespace TaskListsAPI.Application.Services
         {
             try
             {
-                var collection = await _repository.GetByIdAsync(collectionId);
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null) return ServiceResult<ReturnTaskCollectionDto>.Error(ErrorMessages.UserNotFound);
+
+                var collection = await _taskCollectionRepository.GetByIdAsync(collectionId);
                 if (collection == null) return ServiceResult<ReturnTaskCollectionDto>.Error(ErrorMessages.CollectionNotFound);
 
                 if (collection.OwnerId != userId && !collection.Shares.Any(s => s.UserId == userId))
@@ -117,10 +131,13 @@ namespace TaskListsAPI.Application.Services
         {
             try
             {
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null) return ServiceResult<List<ReturnTaskCollectionDto>>.Error(ErrorMessages.UserNotFound);
+
                 if (page <= 0) page = Constants.Constants.DefaultPage;
                 if (pageSize <= 0) pageSize = Constants.Constants.DefaultPageSize;
 
-                var allCollections = await _repository.GetAllAsync();
+                var allCollections = await _taskCollectionRepository.GetAllAsync();
                 var userCollections = allCollections
                     .Where(c => c.OwnerId == userId || c.Shares.Any(s => s.UserId == userId))
                     .OrderByDescending(c => c.CreatedAt)
@@ -143,7 +160,11 @@ namespace TaskListsAPI.Application.Services
         {
             try
             {
-                var collection = await _repository.GetByIdAsync(collectionId);
+                if (await _userRepository.GetByIdAsync(userId) == null ||
+                    await _userRepository.GetByIdAsync(dto.UserId) == null)
+                    return ServiceResult<ReturnTaskCollectionDto>.Error(ErrorMessages.UserNotFound);
+
+                var collection = await _taskCollectionRepository.GetByIdAsync(collectionId);
                 if (collection == null) return ServiceResult<ReturnTaskCollectionDto>.Error(ErrorMessages.CollectionNotFound);
 
                 if (collection.OwnerId != userId && !collection.Shares.Any(s => s.UserId == userId))
@@ -155,8 +176,8 @@ namespace TaskListsAPI.Application.Services
                 if (!collection.Shares.Any(s => s.UserId == dto.UserId))
                     collection.Shares.Add(new Share(dto.UserId, collectionId));
 
-                await _repository.UpdateAsync(collection);
-                await _repository.SaveChangesAsync();
+                await _taskCollectionRepository.UpdateAsync(collection);
+                await _taskCollectionRepository.SaveChangesAsync();
 
                 return ServiceResult<ReturnTaskCollectionDto>.Success(MapToReturnDtoHelper.MapToReturnDto(collection));
             }
@@ -172,7 +193,11 @@ namespace TaskListsAPI.Application.Services
         {
             try
             {
-                var collection = await _repository.GetByIdAsync(collectionId);
+                if (await _userRepository.GetByIdAsync(userId) == null ||
+                    await _userRepository.GetByIdAsync(removeUserId) == null)
+                    return ServiceResult<ReturnTaskCollectionDto>.Error(ErrorMessages.UserNotFound);
+
+                var collection = await _taskCollectionRepository.GetByIdAsync(collectionId);
                 if (collection == null) return ServiceResult<ReturnTaskCollectionDto>.Error(ErrorMessages.CollectionNotFound);
 
                 if (collection.OwnerId != userId && !collection.Shares.Any(s => s.UserId == userId))
@@ -182,8 +207,8 @@ namespace TaskListsAPI.Application.Services
                 if (share != null)
                     collection.Shares.Remove(share);
 
-                await _repository.UpdateAsync(collection);
-                await _repository.SaveChangesAsync();
+                await _taskCollectionRepository.UpdateAsync(collection);
+                await _taskCollectionRepository.SaveChangesAsync();
 
                 return ServiceResult<ReturnTaskCollectionDto>.Success(MapToReturnDtoHelper.MapToReturnDto(collection));
             }

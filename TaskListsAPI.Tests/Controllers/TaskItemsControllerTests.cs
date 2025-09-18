@@ -10,15 +10,15 @@ namespace TaskListsAPI.Tests.Controllers
 {
     public class TaskItemsControllerTests
     {
-        private readonly Mock<ITaskItemService> _serviceMock;
-        private readonly TaskItemsController _controller;
+        private readonly Mock<ITaskItemService> _taskItemServiceMock;
+        private readonly TaskItemsController _taskItemsController;
 
         #region Ctor
 
         public TaskItemsControllerTests()
         {
-            _serviceMock = new Mock<ITaskItemService>();
-            _controller = new TaskItemsController(_serviceMock.Object);
+            _taskItemServiceMock = new Mock<ITaskItemService>();
+            _taskItemsController = new TaskItemsController(_taskItemServiceMock.Object);
         }
 
         #endregion
@@ -32,11 +32,11 @@ namespace TaskListsAPI.Tests.Controllers
             // Arrange
             var dto = new CreateTaskItemDto { Title = title, TaskCollectionId = Guid.Parse(collectionId) };
             var returnDto = new ReturnTaskItemDto { Id = Guid.NewGuid(), Title = title, TaskCollectionId = Guid.Parse(collectionId) };
-            _serviceMock.Setup(s => s.CreateAsync(dto))
+            _taskItemServiceMock.Setup(s => s.CreateAsync(dto))
                 .ReturnsAsync(ServiceResult<ReturnTaskItemDto>.Success(returnDto));
 
             // Act
-            var result = await _controller.Create(dto);
+            var result = await _taskItemsController.Create(dto);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -49,11 +49,11 @@ namespace TaskListsAPI.Tests.Controllers
         {
             // Arrange
             var dto = new CreateTaskItemDto { Title = title, TaskCollectionId = Guid.Parse(collectionId) };
-            _serviceMock.Setup(s => s.CreateAsync(dto))
+            _taskItemServiceMock.Setup(s => s.CreateAsync(dto))
                 .ReturnsAsync(ServiceResult<ReturnTaskItemDto>.Error("Error"));
 
             // Act
-            var result = await _controller.Create(dto);
+            var result = await _taskItemsController.Create(dto);
 
             // Assert
             var badResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -71,11 +71,11 @@ namespace TaskListsAPI.Tests.Controllers
             // Arrange
             var dto = new UpdateTaskItemDto { Title = newTitle, IsCompleted = isCompleted };
             var returnDto = new ReturnTaskItemDto { Id = Guid.Parse(taskId), Title = newTitle, IsCompleted = isCompleted };
-            _serviceMock.Setup(s => s.UpdateAsync(Guid.Parse(taskId), dto))
+            _taskItemServiceMock.Setup(s => s.UpdateAsync(Guid.Parse(taskId), dto))
                 .ReturnsAsync(ServiceResult<ReturnTaskItemDto>.Success(returnDto));
 
             // Act
-            var result = await _controller.Update(Guid.Parse(taskId), dto);
+            var result = await _taskItemsController.Update(Guid.Parse(taskId), dto);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -88,11 +88,11 @@ namespace TaskListsAPI.Tests.Controllers
         {
             // Arrange
             var dto = new UpdateTaskItemDto { Title = newTitle, IsCompleted = isCompleted };
-            _serviceMock.Setup(s => s.UpdateAsync(Guid.Parse(taskId), dto))
+            _taskItemServiceMock.Setup(s => s.UpdateAsync(Guid.Parse(taskId), dto))
                 .ReturnsAsync(ServiceResult<ReturnTaskItemDto>.Error("Error"));
 
             // Act
-            var result = await _controller.Update(Guid.Parse(taskId), dto);
+            var result = await _taskItemsController.Update(Guid.Parse(taskId), dto);
 
             // Assert
             var badResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -108,11 +108,11 @@ namespace TaskListsAPI.Tests.Controllers
         public async Task Delete_ReturnsOk_WhenServiceSuccess(string taskId)
         {
             // Arrange
-            _serviceMock.Setup(s => s.DeleteAsync(Guid.Parse(taskId)))
+            _taskItemServiceMock.Setup(s => s.DeleteAsync(Guid.Parse(taskId)))
                 .ReturnsAsync(ServiceResult<bool>.Success(true));
 
             // Act
-            var result = await _controller.Delete(Guid.Parse(taskId));
+            var result = await _taskItemsController.Delete(Guid.Parse(taskId));
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -124,11 +124,11 @@ namespace TaskListsAPI.Tests.Controllers
         public async Task Delete_ReturnsBadRequest_WhenServiceFails(string taskId)
         {
             // Arrange
-            _serviceMock.Setup(s => s.DeleteAsync(Guid.Parse(taskId)))
+            _taskItemServiceMock.Setup(s => s.DeleteAsync(Guid.Parse(taskId)))
                 .ReturnsAsync(ServiceResult<bool>.Error("Error"));
 
             // Act
-            var result = await _controller.Delete(Guid.Parse(taskId));
+            var result = await _taskItemsController.Delete(Guid.Parse(taskId));
 
             // Assert
             var badResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -145,11 +145,11 @@ namespace TaskListsAPI.Tests.Controllers
         {
             // Arrange
             var returnDto = new ReturnTaskItemDto { Id = Guid.Parse(taskId), Title = "Task", IsCompleted = false };
-            _serviceMock.Setup(s => s.GetByIdAsync(Guid.Parse(taskId)))
+            _taskItemServiceMock.Setup(s => s.GetByIdAsync(Guid.Parse(taskId)))
                 .ReturnsAsync(ServiceResult<ReturnTaskItemDto>.Success(returnDto));
 
             // Act
-            var result = await _controller.GetById(Guid.Parse(taskId));
+            var result = await _taskItemsController.GetById(Guid.Parse(taskId));
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -161,11 +161,11 @@ namespace TaskListsAPI.Tests.Controllers
         public async Task GetById_ReturnsBadRequest_WhenServiceFails(string taskId)
         {
             // Arrange
-            _serviceMock.Setup(s => s.GetByIdAsync(Guid.Parse(taskId)))
+            _taskItemServiceMock.Setup(s => s.GetByIdAsync(Guid.Parse(taskId)))
                 .ReturnsAsync(ServiceResult<ReturnTaskItemDto>.Error("Error"));
 
             // Act
-            var result = await _controller.GetById(Guid.Parse(taskId));
+            var result = await _taskItemsController.GetById(Guid.Parse(taskId));
 
             // Assert
             var badResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -185,11 +185,11 @@ namespace TaskListsAPI.Tests.Controllers
             {
                 new ReturnTaskItemDto { Id = Guid.NewGuid(), Title = "Task1", TaskCollectionId = Guid.Parse(collectionId) }
             };
-            _serviceMock.Setup(s => s.GetAllByCollectionIdAsync(Guid.Parse(collectionId)))
+            _taskItemServiceMock.Setup(s => s.GetAllByCollectionIdAsync(Guid.Parse(collectionId)))
                 .ReturnsAsync(ServiceResult<List<ReturnTaskItemDto>>.Success(tasks));
 
             // Act
-            var result = await _controller.GetAllByCollectionId(Guid.Parse(collectionId));
+            var result = await _taskItemsController.GetAllByCollectionId(Guid.Parse(collectionId));
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -201,11 +201,11 @@ namespace TaskListsAPI.Tests.Controllers
         public async Task GetAllByCollectionId_ReturnsBadRequest_WhenServiceFails(string collectionId)
         {
             // Arrange
-            _serviceMock.Setup(s => s.GetAllByCollectionIdAsync(Guid.Parse(collectionId)))
+            _taskItemServiceMock.Setup(s => s.GetAllByCollectionIdAsync(Guid.Parse(collectionId)))
                 .ReturnsAsync(ServiceResult<List<ReturnTaskItemDto>>.Error("Error"));
 
             // Act
-            var result = await _controller.GetAllByCollectionId(Guid.Parse(collectionId));
+            var result = await _taskItemsController.GetAllByCollectionId(Guid.Parse(collectionId));
 
             // Assert
             var badResult = Assert.IsType<BadRequestObjectResult>(result);

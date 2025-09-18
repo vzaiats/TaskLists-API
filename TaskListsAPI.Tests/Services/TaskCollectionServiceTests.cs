@@ -10,82 +10,110 @@ namespace TaskListsAPI.Tests.Services
 {
     public class TaskCollectionServiceTests
     {
-        private readonly Mock<ITaskCollectionRepository> _repositoryMock;
+        private readonly Mock<ITaskCollectionRepository> _taskCollectionRepositoryMock;
+        private readonly Mock<IUserRepository> _userRepositoryMock;
         private readonly Mock<ILogger<TaskCollectionService>> _loggerMock;
-        private readonly TaskCollectionService _service;
-
-        #region Ctor
+        private readonly TaskCollectionService _taskCollectionService;
 
         public TaskCollectionServiceTests()
         {
-            _repositoryMock = new Mock<ITaskCollectionRepository>();
+            _taskCollectionRepositoryMock = new Mock<ITaskCollectionRepository>();
+            _userRepositoryMock = new Mock<IUserRepository>();
             _loggerMock = new Mock<ILogger<TaskCollectionService>>();
-            _service = new TaskCollectionService(_repositoryMock.Object, _loggerMock.Object);
-        }
 
-        #endregion
+            _taskCollectionService = new TaskCollectionService(
+                _taskCollectionRepositoryMock.Object,
+                _userRepositoryMock.Object,
+                _loggerMock.Object
+            );
+        }
 
         #region CreateAsync
 
         [Theory]
         [InlineData("My Collection", "11111111-1111-1111-1111-111111111111")]
-        [InlineData("Work Tasks", "22222222-2222-2222-2222-222222222222")]
         public async Task CreateAsync_ShouldReturnSuccess(string name, string ownerIdStr)
         {
-            // Arrange
             var ownerId = Guid.Parse(ownerIdStr);
             var dto = new CreateTaskCollectionDto { Name = name, OwnerId = ownerId };
-            _repositoryMock.Setup(r => r.AddAsync(It.IsAny<TaskCollection>())).Returns(Task.CompletedTask);
-            _repositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-            // Act
-            var result = await _service.CreateAsync(dto);
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(ownerId))
+                .ReturnsAsync(new User { Id = ownerId, Name = "TestUser" });
+            _taskCollectionRepositoryMock.Setup(r => r.AddAsync(It.IsAny<TaskCollection>())).Returns(Task.CompletedTask);
+            _taskCollectionRepositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-            // Assert
+            var result = await _taskCollectionService.CreateAsync(dto);
+
             Assert.True(result.IsSuccess);
             Assert.Equal(name, result.Data.Name);
             Assert.Equal(ownerId, result.Data.OwnerId);
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldReturnError_WhenUserNotFound()
+        {
+            var ownerId = Guid.NewGuid();
+            var dto = new CreateTaskCollectionDto { Name = "Test", OwnerId = ownerId };
+
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(ownerId)).ReturnsAsync((User)null);
+
+            var result = await _taskCollectionService.CreateAsync(dto);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains(ErrorMessages.UserNotFound, result.Errors);
         }
 
         #endregion
 
         #region UpdateAsync
 
-        [Theory]
-        [InlineData("Updated Collection", "11111111-1111-1111-1111-111111111111")]
-        public async Task UpdateAsync_ShouldReturnSuccess_WhenUserIsOwner(string newName, string userIdStr)
+        [Fact]
+        public async Task UpdateAsync_ShouldReturnSuccess_WhenUserIsOwner()
         {
-            // Arrange
-            var userId = Guid.Parse(userIdStr);
+            var ownerId = Guid.NewGuid();
             var collectionId = Guid.NewGuid();
-            var collection = new TaskCollection("Old Name", userId);
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
-            _repositoryMock.Setup(r => r.UpdateAsync(collection)).Returns(Task.CompletedTask);
-            _repositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+            var collection = new TaskCollection("Old Name", ownerId);
 
-            var dto = new UpdateTaskCollectionDto { Name = newName };
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(ownerId)).ReturnsAsync(new User { Id = ownerId });
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
+            _taskCollectionRepositoryMock.Setup(r => r.UpdateAsync(collection)).Returns(Task.CompletedTask);
+            _taskCollectionRepositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-            // Act
-            var result = await _service.UpdateAsync(collectionId, userId, dto);
+            var dto = new UpdateTaskCollectionDto { Name = "New Name" };
 
-            // Assert
+            var result = await _taskCollectionService.UpdateAsync(collectionId, ownerId, dto);
+
             Assert.True(result.IsSuccess);
-            Assert.Equal(newName, result.Data.Name);
+            Assert.Equal("New Name", result.Data.Name);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldReturnError_WhenUserNotFound()
+        {
+            var userId = Guid.NewGuid();
+            var collectionId = Guid.NewGuid();
+            var dto = new UpdateTaskCollectionDto { Name = "New Name" };
+
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(userId)).ReturnsAsync((User)null);
+
+            var result = await _taskCollectionService.UpdateAsync(collectionId, userId, dto);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains(ErrorMessages.UserNotFound, result.Errors);
         }
 
         [Fact]
         public async Task UpdateAsync_ShouldReturnError_WhenCollectionNotFound()
         {
-            // Arrange
-            var collectionId = Guid.NewGuid();
             var userId = Guid.NewGuid();
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync((TaskCollection)null);
+            var collectionId = Guid.NewGuid();
+
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(userId)).ReturnsAsync(new User { Id = userId });
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync((TaskCollection)null);
+
             var dto = new UpdateTaskCollectionDto { Name = "New Name" };
+            var result = await _taskCollectionService.UpdateAsync(collectionId, userId, dto);
 
-            // Act
-            var result = await _service.UpdateAsync(collectionId, userId, dto);
-
-            // Assert
             Assert.False(result.IsSuccess);
             Assert.Contains(ErrorMessages.CollectionNotFound, result.Errors);
         }
@@ -93,18 +121,17 @@ namespace TaskListsAPI.Tests.Services
         [Fact]
         public async Task UpdateAsync_ShouldReturnError_WhenUserNotAllowed()
         {
-            // Arrange
-            var collectionId = Guid.NewGuid();
             var ownerId = Guid.NewGuid();
             var otherUserId = Guid.NewGuid();
-            var collection = new TaskCollection("Name", ownerId);
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
+            var collectionId = Guid.NewGuid();
+            var collection = new TaskCollection("Old Name", ownerId);
+
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(otherUserId)).ReturnsAsync(new User { Id = otherUserId });
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
+
             var dto = new UpdateTaskCollectionDto { Name = "New Name" };
+            var result = await _taskCollectionService.UpdateAsync(collectionId, otherUserId, dto);
 
-            // Act
-            var result = await _service.UpdateAsync(collectionId, otherUserId, dto);
-
-            // Assert
             Assert.False(result.IsSuccess);
             Assert.Contains(ErrorMessages.AccessDenied, result.Errors);
         }
@@ -116,18 +143,17 @@ namespace TaskListsAPI.Tests.Services
         [Fact]
         public async Task DeleteAsync_ShouldReturnSuccess_WhenOwnerDeletes()
         {
-            // Arrange
             var ownerId = Guid.NewGuid();
             var collectionId = Guid.NewGuid();
             var collection = new TaskCollection("Test", ownerId);
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
-            _repositoryMock.Setup(r => r.DeleteAsync(collection)).Returns(Task.CompletedTask);
-            _repositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-            // Act
-            var result = await _service.DeleteAsync(collectionId, ownerId);
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(ownerId)).ReturnsAsync(new User { Id = ownerId });
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
+            _taskCollectionRepositoryMock.Setup(r => r.DeleteAsync(collection)).Returns(Task.CompletedTask);
+            _taskCollectionRepositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-            // Assert
+            var result = await _taskCollectionService.DeleteAsync(collectionId, ownerId);
+
             Assert.True(result.IsSuccess);
             Assert.True(result.Data);
         }
@@ -135,17 +161,16 @@ namespace TaskListsAPI.Tests.Services
         [Fact]
         public async Task DeleteAsync_ShouldReturnError_WhenNotOwner()
         {
-            // Arrange
             var ownerId = Guid.NewGuid();
             var otherUserId = Guid.NewGuid();
             var collectionId = Guid.NewGuid();
             var collection = new TaskCollection("Test", ownerId);
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
 
-            // Act
-            var result = await _service.DeleteAsync(collectionId, otherUserId);
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(otherUserId)).ReturnsAsync(new User { Id = otherUserId });
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
 
-            // Assert
+            var result = await _taskCollectionService.DeleteAsync(collectionId, otherUserId);
+
             Assert.False(result.IsSuccess);
             Assert.Contains(ErrorMessages.OnlyOwnerCanDelete, result.Errors);
         }
@@ -153,15 +178,14 @@ namespace TaskListsAPI.Tests.Services
         [Fact]
         public async Task DeleteAsync_ShouldReturnError_WhenNotFound()
         {
-            // Arrange
-            var collectionId = Guid.NewGuid();
             var userId = Guid.NewGuid();
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync((TaskCollection)null);
+            var collectionId = Guid.NewGuid();
 
-            // Act
-            var result = await _service.DeleteAsync(collectionId, userId);
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(userId)).ReturnsAsync(new User { Id = userId });
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync((TaskCollection)null);
 
-            // Assert
+            var result = await _taskCollectionService.DeleteAsync(collectionId, userId);
+
             Assert.False(result.IsSuccess);
             Assert.Contains(ErrorMessages.CollectionNotFound, result.Errors);
         }
@@ -173,32 +197,44 @@ namespace TaskListsAPI.Tests.Services
         [Fact]
         public async Task GetByIdAsync_ShouldReturnSuccess_WhenUserHasAccess()
         {
-            // Arrange
             var ownerId = Guid.NewGuid();
             var collectionId = Guid.NewGuid();
             var collection = new TaskCollection("Test", ownerId);
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
 
-            // Act
-            var result = await _service.GetByIdAsync(collectionId, ownerId);
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(ownerId)).ReturnsAsync(new User { Id = ownerId });
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
 
-            // Assert
+            var result = await _taskCollectionService.GetByIdAsync(collectionId, ownerId);
+
             Assert.True(result.IsSuccess);
             Assert.Equal("Test", result.Data.Name);
         }
 
         [Fact]
-        public async Task GetByIdAsync_ShouldReturnError_WhenNotFound()
+        public async Task GetByIdAsync_ShouldReturnError_WhenUserNotFound()
         {
-            // Arrange
-            var collectionId = Guid.NewGuid();
             var userId = Guid.NewGuid();
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync((TaskCollection)null);
+            var collectionId = Guid.NewGuid();
 
-            // Act
-            var result = await _service.GetByIdAsync(collectionId, userId);
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(userId)).ReturnsAsync((User)null);
 
-            // Assert
+            var result = await _taskCollectionService.GetByIdAsync(collectionId, userId);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains(ErrorMessages.UserNotFound, result.Errors);
+        }
+
+        [Fact]
+        public async Task GetByIdAsync_ShouldReturnError_WhenCollectionNotFound()
+        {
+            var userId = Guid.NewGuid();
+            var collectionId = Guid.NewGuid();
+
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(userId)).ReturnsAsync(new User { Id = userId });
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync((TaskCollection)null);
+
+            var result = await _taskCollectionService.GetByIdAsync(collectionId, userId);
+
             Assert.False(result.IsSuccess);
             Assert.Contains(ErrorMessages.CollectionNotFound, result.Errors);
         }
@@ -210,21 +246,33 @@ namespace TaskListsAPI.Tests.Services
         [Fact]
         public async Task GetAllAsync_ShouldReturnUserCollections()
         {
-            // Arrange
             var userId = Guid.NewGuid();
             var collections = new List<TaskCollection>
             {
                 new TaskCollection("A", userId),
                 new TaskCollection("B", userId)
             };
-            _repositoryMock.Setup(r => r.GetAllAsync()).ReturnsAsync(collections);
 
-            // Act
-            var result = await _service.GetAllAsync(userId);
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(userId)).ReturnsAsync(new User { Id = userId });
+            _taskCollectionRepositoryMock.Setup(r => r.GetAllAsync()).ReturnsAsync(collections);
 
-            // Assert
+            var result = await _taskCollectionService.GetAllAsync(userId);
+
             Assert.True(result.IsSuccess);
             Assert.Equal(2, result.Data.Count);
+        }
+
+        [Fact]
+        public async Task GetAllAsync_ShouldReturnError_WhenUserNotFound()
+        {
+            var userId = Guid.NewGuid();
+
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(userId)).ReturnsAsync((User)null);
+
+            var result = await _taskCollectionService.GetAllAsync(userId);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains(ErrorMessages.UserNotFound, result.Errors);
         }
 
         #endregion
@@ -234,29 +282,44 @@ namespace TaskListsAPI.Tests.Services
         [Fact]
         public async Task ShareAsync_ShouldReturnSuccess_WhenAllowed()
         {
-            // Arrange
             var ownerId = Guid.NewGuid();
             var collectionId = Guid.NewGuid();
             var userToShare = Guid.NewGuid();
             var collection = new TaskCollection("Test", ownerId);
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
-            _repositoryMock.Setup(r => r.UpdateAsync(collection)).Returns(Task.CompletedTask);
-            _repositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(ownerId)).ReturnsAsync(new User { Id = ownerId });
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(userToShare)).ReturnsAsync(new User { Id = userToShare });
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
+            _taskCollectionRepositoryMock.Setup(r => r.UpdateAsync(collection)).Returns(Task.CompletedTask);
+            _taskCollectionRepositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             var dto = new ShareTaskCollectionDto { UserId = userToShare };
+            var result = await _taskCollectionService.ShareAsync(collectionId, ownerId, dto);
 
-            // Act
-            var result = await _service.ShareAsync(collectionId, ownerId, dto);
-
-            // Assert
             Assert.True(result.IsSuccess);
             Assert.Contains(collection.Shares, s => s.UserId == userToShare);
         }
 
         [Fact]
+        public async Task ShareAsync_ShouldReturnError_WhenUserNotFound()
+        {
+            var ownerId = Guid.NewGuid();
+            var collectionId = Guid.NewGuid();
+            var userToShare = Guid.NewGuid();
+            var collection = new TaskCollection("Test", ownerId);
+
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(ownerId)).ReturnsAsync((User)null);
+
+            var dto = new ShareTaskCollectionDto { UserId = userToShare };
+            var result = await _taskCollectionService.ShareAsync(collectionId, ownerId, dto);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains(ErrorMessages.UserNotFound, result.Errors);
+        }
+
+        [Fact]
         public async Task ShareAsync_ShouldReturnError_WhenMaxUsersExceeded()
         {
-            // Arrange
             var ownerId = Guid.NewGuid();
             var collectionId = Guid.NewGuid();
             var collection = new TaskCollection("Test", ownerId);
@@ -266,13 +329,14 @@ namespace TaskListsAPI.Tests.Services
                 new Share(Guid.NewGuid(), collectionId),
                 new Share(Guid.NewGuid(), collectionId)
             });
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
+
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(ownerId)).ReturnsAsync(new User { Id = ownerId });
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(new User());
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
+
             var dto = new ShareTaskCollectionDto { UserId = Guid.NewGuid() };
+            var result = await _taskCollectionService.ShareAsync(collectionId, ownerId, dto);
 
-            // Act
-            var result = await _service.ShareAsync(collectionId, ownerId, dto);
-
-            // Assert
             Assert.False(result.IsSuccess);
             Assert.Contains(ErrorMessages.MaxThreeUsers, result.Errors);
         }
@@ -288,19 +352,38 @@ namespace TaskListsAPI.Tests.Services
             var ownerId = Guid.NewGuid();
             var collectionId = Guid.NewGuid();
             var sharedUserId = Guid.NewGuid();
+
             var collection = new TaskCollection("Test", ownerId);
             collection.Shares.Add(new Share(sharedUserId, collectionId));
 
-            _repositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
-            _repositoryMock.Setup(r => r.UpdateAsync(collection)).Returns(Task.CompletedTask);
-            _repositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(ownerId)).ReturnsAsync(new User { Id = ownerId });
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(sharedUserId)).ReturnsAsync(new User { Id = sharedUserId });
+
+            _taskCollectionRepositoryMock.Setup(r => r.GetByIdAsync(collectionId)).ReturnsAsync(collection);
+            _taskCollectionRepositoryMock.Setup(r => r.UpdateAsync(collection)).Returns(Task.CompletedTask);
+            _taskCollectionRepositoryMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            var result = await _service.UnshareAsync(collectionId, ownerId, sharedUserId);
+            var result = await _taskCollectionService.UnshareAsync(collectionId, ownerId, sharedUserId);
 
             // Assert
             Assert.True(result.IsSuccess);
             Assert.DoesNotContain(collection.Shares, s => s.UserId == sharedUserId);
+        }
+
+        [Fact]
+        public async Task UnshareAsync_ShouldReturnError_WhenUserNotFound()
+        {
+            var ownerId = Guid.NewGuid();
+            var collectionId = Guid.NewGuid();
+            var sharedUserId = Guid.NewGuid();
+
+            _userRepositoryMock.Setup(u => u.GetByIdAsync(ownerId)).ReturnsAsync((User)null);
+
+            var result = await _taskCollectionService.UnshareAsync(collectionId, ownerId, sharedUserId);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains(ErrorMessages.UserNotFound, result.Errors);
         }
 
         #endregion

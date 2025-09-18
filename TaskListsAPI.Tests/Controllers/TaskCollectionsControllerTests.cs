@@ -9,15 +9,15 @@ namespace TaskListsAPI.Tests.Controllers
 {
     public class TaskCollectionsControllerTests
     {
-        private readonly Mock<ITaskCollectionService> _serviceMock;
-        private readonly TaskCollectionsController _controller;
+        private readonly Mock<ITaskCollectionService> _taskCollectionServiceMock;
+        private readonly TaskCollectionsController _taskCollectionsController;
 
         #region Ctor
 
         public TaskCollectionsControllerTests()
         {
-            _serviceMock = new Mock<ITaskCollectionService>();
-            _controller = new TaskCollectionsController(_serviceMock.Object);
+            _taskCollectionServiceMock = new Mock<ITaskCollectionService>();
+            _taskCollectionsController = new TaskCollectionsController(_taskCollectionServiceMock.Object);
         }
 
         #endregion
@@ -31,11 +31,11 @@ namespace TaskListsAPI.Tests.Controllers
             // Arrange
             var dto = new CreateTaskCollectionDto { Name = name, OwnerId = Guid.Parse(ownerId) };
             var returnDto = new ReturnTaskCollectionDto { Id = Guid.NewGuid(), Name = name, OwnerId = Guid.Parse(ownerId) };
-            _serviceMock.Setup(s => s.CreateAsync(dto))
+            _taskCollectionServiceMock.Setup(s => s.CreateAsync(dto))
                 .ReturnsAsync(ServiceResult<ReturnTaskCollectionDto>.Success(returnDto));
 
             // Act
-            var result = await _controller.Create(dto);
+            var result = await _taskCollectionsController.Create(dto);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -48,11 +48,11 @@ namespace TaskListsAPI.Tests.Controllers
         {
             // Arrange
             var dto = new CreateTaskCollectionDto { Name = name, OwnerId = Guid.Parse(ownerId) };
-            _serviceMock.Setup(s => s.CreateAsync(dto))
+            _taskCollectionServiceMock.Setup(s => s.CreateAsync(dto))
                 .ReturnsAsync(ServiceResult<ReturnTaskCollectionDto>.Error("Error"));
 
             // Act
-            var result = await _controller.Create(dto);
+            var result = await _taskCollectionsController.Create(dto);
 
             // Assert
             var badResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -70,11 +70,11 @@ namespace TaskListsAPI.Tests.Controllers
             // Arrange
             var dto = new UpdateTaskCollectionDto { Name = newName };
             var returnDto = new ReturnTaskCollectionDto { Id = Guid.Parse(collectionId), Name = newName, OwnerId = Guid.Parse(userId) };
-            _serviceMock.Setup(s => s.UpdateAsync(Guid.Parse(collectionId), Guid.Parse(userId), dto))
+            _taskCollectionServiceMock.Setup(s => s.UpdateAsync(Guid.Parse(collectionId), Guid.Parse(userId), dto))
                 .ReturnsAsync(ServiceResult<ReturnTaskCollectionDto>.Success(returnDto));
 
             // Act
-            var result = await _controller.Update(Guid.Parse(collectionId), Guid.Parse(userId), dto);
+            var result = await _taskCollectionsController.Update(Guid.Parse(collectionId), Guid.Parse(userId), dto);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -87,11 +87,11 @@ namespace TaskListsAPI.Tests.Controllers
         {
             // Arrange
             var dto = new UpdateTaskCollectionDto { Name = newName };
-            _serviceMock.Setup(s => s.UpdateAsync(Guid.Parse(collectionId), Guid.Parse(userId), dto))
+            _taskCollectionServiceMock.Setup(s => s.UpdateAsync(Guid.Parse(collectionId), Guid.Parse(userId), dto))
                 .ReturnsAsync(ServiceResult<ReturnTaskCollectionDto>.Error("Error"));
 
             // Act
-            var result = await _controller.Update(Guid.Parse(collectionId), Guid.Parse(userId), dto);
+            var result = await _taskCollectionsController.Update(Guid.Parse(collectionId), Guid.Parse(userId), dto);
 
             // Assert
             var badResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -107,11 +107,11 @@ namespace TaskListsAPI.Tests.Controllers
         public async Task Delete_ReturnsOk_WhenServiceSuccess(string collectionId, string userId)
         {
             // Arrange
-            _serviceMock.Setup(s => s.DeleteAsync(Guid.Parse(collectionId), Guid.Parse(userId)))
+            _taskCollectionServiceMock.Setup(s => s.DeleteAsync(Guid.Parse(collectionId), Guid.Parse(userId)))
                 .ReturnsAsync(ServiceResult<bool>.Success(true));
 
             // Act
-            var result = await _controller.Delete(Guid.Parse(collectionId), Guid.Parse(userId));
+            var result = await _taskCollectionsController.Delete(Guid.Parse(collectionId), Guid.Parse(userId));
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -123,11 +123,11 @@ namespace TaskListsAPI.Tests.Controllers
         public async Task Delete_ReturnsBadRequest_WhenServiceFails(string collectionId, string userId)
         {
             // Arrange
-            _serviceMock.Setup(s => s.DeleteAsync(Guid.Parse(collectionId), Guid.Parse(userId)))
+            _taskCollectionServiceMock.Setup(s => s.DeleteAsync(Guid.Parse(collectionId), Guid.Parse(userId)))
                 .ReturnsAsync(ServiceResult<bool>.Error("Error"));
 
             // Act
-            var result = await _controller.Delete(Guid.Parse(collectionId), Guid.Parse(userId));
+            var result = await _taskCollectionsController.Delete(Guid.Parse(collectionId), Guid.Parse(userId));
 
             // Assert
             var badResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -144,11 +144,11 @@ namespace TaskListsAPI.Tests.Controllers
         {
             // Arrange
             var returnDto = new ReturnTaskCollectionDto { Id = Guid.Parse(collectionId), Name = "Name", OwnerId = Guid.Parse(userId) };
-            _serviceMock.Setup(s => s.GetByIdAsync(Guid.Parse(collectionId), Guid.Parse(userId)))
+            _taskCollectionServiceMock.Setup(s => s.GetByIdAsync(Guid.Parse(collectionId), Guid.Parse(userId)))
                 .ReturnsAsync(ServiceResult<ReturnTaskCollectionDto>.Success(returnDto));
 
             // Act
-            var result = await _controller.GetById(Guid.Parse(collectionId), Guid.Parse(userId));
+            var result = await _taskCollectionsController.GetById(Guid.Parse(collectionId), Guid.Parse(userId));
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -160,11 +160,11 @@ namespace TaskListsAPI.Tests.Controllers
         public async Task GetById_ReturnsBadRequest_WhenServiceFails(string collectionId, string userId)
         {
             // Arrange
-            _serviceMock.Setup(s => s.GetByIdAsync(Guid.Parse(collectionId), Guid.Parse(userId)))
+            _taskCollectionServiceMock.Setup(s => s.GetByIdAsync(Guid.Parse(collectionId), Guid.Parse(userId)))
                 .ReturnsAsync(ServiceResult<ReturnTaskCollectionDto>.Error("Error"));
 
             // Act
-            var result = await _controller.GetById(Guid.Parse(collectionId), Guid.Parse(userId));
+            var result = await _taskCollectionsController.GetById(Guid.Parse(collectionId), Guid.Parse(userId));
 
             // Assert
             var badResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -184,11 +184,11 @@ namespace TaskListsAPI.Tests.Controllers
             {
                 new ReturnTaskCollectionDto { Id = Guid.NewGuid(), Name = "Test", OwnerId = Guid.Parse(userId) }
             };
-            _serviceMock.Setup(s => s.GetAllAsync(Guid.Parse(userId), 1, 20))
+            _taskCollectionServiceMock.Setup(s => s.GetAllAsync(Guid.Parse(userId), 1, 20))
                 .ReturnsAsync(ServiceResult<List<ReturnTaskCollectionDto>>.Success(collections));
 
             // Act
-            var result = await _controller.GetAll(Guid.Parse(userId));
+            var result = await _taskCollectionsController.GetAll(Guid.Parse(userId));
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -206,11 +206,11 @@ namespace TaskListsAPI.Tests.Controllers
             // Arrange
             var dto = new ShareTaskCollectionDto { UserId = Guid.Parse(shareUserId) };
             var returnDto = new ReturnTaskCollectionDto { Id = Guid.Parse(collectionId), Name = "Shared", OwnerId = Guid.Parse(userId) };
-            _serviceMock.Setup(s => s.ShareAsync(Guid.Parse(collectionId), Guid.Parse(userId), dto))
+            _taskCollectionServiceMock.Setup(s => s.ShareAsync(Guid.Parse(collectionId), Guid.Parse(userId), dto))
                 .ReturnsAsync(ServiceResult<ReturnTaskCollectionDto>.Success(returnDto));
 
             // Act
-            var result = await _controller.Share(Guid.Parse(collectionId), Guid.Parse(userId), dto);
+            var result = await _taskCollectionsController.Share(Guid.Parse(collectionId), Guid.Parse(userId), dto);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -227,11 +227,11 @@ namespace TaskListsAPI.Tests.Controllers
         {
             // Arrange
             var returnDto = new ReturnTaskCollectionDto { Id = Guid.Parse(collectionId), Name = "Shared", OwnerId = Guid.Parse(userId) };
-            _serviceMock.Setup(s => s.UnshareAsync(Guid.Parse(collectionId), Guid.Parse(userId), Guid.Parse(shareUserId)))
+            _taskCollectionServiceMock.Setup(s => s.UnshareAsync(Guid.Parse(collectionId), Guid.Parse(userId), Guid.Parse(shareUserId)))
                 .ReturnsAsync(ServiceResult<ReturnTaskCollectionDto>.Success(returnDto));
 
             // Act
-            var result = await _controller.Unshare(Guid.Parse(collectionId), Guid.Parse(userId), Guid.Parse(shareUserId));
+            var result = await _taskCollectionsController.Unshare(Guid.Parse(collectionId), Guid.Parse(userId), Guid.Parse(shareUserId));
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);

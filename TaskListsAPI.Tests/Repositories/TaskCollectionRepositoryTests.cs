@@ -8,7 +8,7 @@ namespace TaskListsAPI.Tests.Repositories
     public class TaskCollectionRepositoryTests : IDisposable
     {
         private readonly AppDbContext _context;
-        private readonly TaskCollectionRepository _repository;
+        private readonly TaskCollectionRepository _taskCollectionRepository;
 
         #region Ctor
 
@@ -19,7 +19,7 @@ namespace TaskListsAPI.Tests.Repositories
                 .Options;
 
             _context = new AppDbContext(options);
-            _repository = new TaskCollectionRepository(_context);
+            _taskCollectionRepository = new TaskCollectionRepository(_context);
 
             SeedDatabase().Wait();
         }
@@ -70,7 +70,7 @@ namespace TaskListsAPI.Tests.Repositories
             var collection = await _context.TaskCollections.FirstAsync(c => c.Name == collectionName);
 
             // Act
-            var result = await _repository.GetByIdAsync(collection.Id);
+            var result = await _taskCollectionRepository.GetByIdAsync(collection.Id);
 
             // Assert
             Assert.NotNull(result);
@@ -82,7 +82,7 @@ namespace TaskListsAPI.Tests.Repositories
         public async Task GetByIdAsync_ShouldReturnNull_WhenNotExists()
         {
             // Act
-            var result = await _repository.GetByIdAsync(Guid.NewGuid());
+            var result = await _taskCollectionRepository.GetByIdAsync(Guid.NewGuid());
 
             // Assert
             Assert.Null(result);
@@ -96,7 +96,7 @@ namespace TaskListsAPI.Tests.Repositories
         public async Task GetAllAsync_ShouldReturnAllCollections()
         {
             // Act
-            var result = await _repository.GetAllAsync();
+            var result = await _taskCollectionRepository.GetAllAsync();
 
             // Assert
             Assert.Equal(2, result.Count);
@@ -116,8 +116,8 @@ namespace TaskListsAPI.Tests.Repositories
             var newCollection = new TaskCollection(name, ownerId);
 
             // Act
-            await _repository.AddAsync(newCollection);
-            await _repository.SaveChangesAsync();
+            await _taskCollectionRepository.AddAsync(newCollection);
+            await _taskCollectionRepository.SaveChangesAsync();
 
             var added = await _context.TaskCollections.FindAsync(newCollection.Id);
 
@@ -139,8 +139,8 @@ namespace TaskListsAPI.Tests.Repositories
             collection.Rename("Updated Name");
 
             // Act
-            await _repository.UpdateAsync(collection);
-            await _repository.SaveChangesAsync();
+            await _taskCollectionRepository.UpdateAsync(collection);
+            await _taskCollectionRepository.SaveChangesAsync();
 
             var updated = await _context.TaskCollections.FindAsync(collection.Id);
 
@@ -159,8 +159,8 @@ namespace TaskListsAPI.Tests.Repositories
             var collection = await _context.TaskCollections.FirstAsync();
 
             // Act
-            await _repository.DeleteAsync(collection);
-            await _repository.SaveChangesAsync();
+            await _taskCollectionRepository.DeleteAsync(collection);
+            await _taskCollectionRepository.SaveChangesAsync();
 
             var deleted = await _context.TaskCollections.FindAsync(collection.Id);
 

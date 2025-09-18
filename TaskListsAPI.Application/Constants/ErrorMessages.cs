@@ -2,6 +2,7 @@
 {
     public static class ErrorMessages
     {
+        public const string UserNotFound = "User not found";
         public const string CollectionNotFound = "Collection not found";
         public const string TaskNotFound = "Task not found";
         public const string AccessDenied = "Access denied";
