@@ -34,7 +34,7 @@ namespace TaskListsAPI.Api.Controllers
         [HttpPost]
         [SwaggerRequestExample(typeof(CreateTaskCollectionDto), typeof(CreateTaskCollectionDtoExample))]
         [SwaggerResponseExample(200, typeof(ReturnTaskCollectionDtoExample))]
-        [ProducesResponseType(typeof(ReturnTaskCollectionDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ReturnTaskCollectionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(List<string>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateTaskCollectionDto dto)
         {
@@ -51,7 +51,6 @@ namespace TaskListsAPI.Api.Controllers
         [SwaggerResponseExample(200, typeof(ReturnTaskCollectionDtoExample))]
         [ProducesResponseType(typeof(ReturnTaskCollectionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(List<string>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Update(Guid id, [FromQuery] Guid userId, [FromBody] UpdateTaskCollectionDto dto)
         {
             var result = await _service.UpdateAsync(id, userId, dto);
@@ -64,7 +63,6 @@ namespace TaskListsAPI.Api.Controllers
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(List<string>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(Guid id, [FromQuery] Guid userId)
         {
             var result = await _service.DeleteAsync(id, userId);
@@ -78,7 +76,6 @@ namespace TaskListsAPI.Api.Controllers
         [SwaggerResponseExample(200, typeof(ReturnTaskCollectionDtoExample))]
         [ProducesResponseType(typeof(ReturnTaskCollectionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(List<string>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id, [FromQuery] Guid userId)
         {
             var result = await _service.GetByIdAsync(id, userId);
@@ -108,7 +105,6 @@ namespace TaskListsAPI.Api.Controllers
         [SwaggerResponseExample(200, typeof(ReturnTaskCollectionDtoExample))]
         [ProducesResponseType(typeof(ReturnTaskCollectionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(List<string>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Share(Guid id, [FromQuery] Guid userId, [FromBody] ShareTaskCollectionDto dto)
         {
             var result = await _service.ShareAsync(id, userId, dto);
@@ -122,7 +118,6 @@ namespace TaskListsAPI.Api.Controllers
         [HttpDelete("{id:guid}/share/{shareUserId:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(List<string>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Unshare(Guid id, [FromQuery] Guid userId, Guid shareUserId)
         {
             var result = await _service.UnshareAsync(id, userId, shareUserId);

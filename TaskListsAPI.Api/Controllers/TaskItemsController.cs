@@ -35,7 +35,7 @@ namespace TaskListsAPI.Api.Controllers
         [HttpPost]
         [SwaggerRequestExample(typeof(CreateTaskItemDto), typeof(CreateTaskItemDtoExample))]
         [SwaggerResponseExample(200, typeof(ReturnTaskItemDtoExample))]
-        [ProducesResponseType(typeof(ReturnTaskItemDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ReturnTaskItemDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(List<string>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateTaskItemDto dto)
         {
